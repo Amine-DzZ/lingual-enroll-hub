@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,9 +88,18 @@ const AdminCourses = () => {
   // Add course mutation
   const addCourseMutation = useMutation({
     mutationFn: async (newCourse: CourseFormValues) => {
+      const courseData = {
+        name: newCourse.name,
+        description: newCourse.description,
+        price: newCourse.price,
+        duration: newCourse.duration,
+        level: newCourse.level,
+        instructor: newCourse.instructor
+      };
+      
       const { data, error } = await supabase
         .from('courses')
-        .insert([newCourse])
+        .insert(courseData)
         .select()
         .single();
       
@@ -120,9 +128,18 @@ const AdminCourses = () => {
   // Update course mutation
   const updateCourseMutation = useMutation({
     mutationFn: async ({ id, course }: { id: string; course: CourseFormValues }) => {
+      const courseData = {
+        name: course.name,
+        description: course.description,
+        price: course.price,
+        duration: course.duration,
+        level: course.level,
+        instructor: course.instructor
+      };
+      
       const { data, error } = await supabase
         .from('courses')
-        .update(course)
+        .update(courseData)
         .eq('id', id)
         .select()
         .single();

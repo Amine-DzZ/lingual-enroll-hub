@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -76,15 +75,13 @@ const EnrollmentForm = () => {
     
     try {
       // Submit to Supabase
-      const { error } = await supabase.from("enrollments").insert([
-        {
-          student_name: data.student_name,
-          email: data.email,
-          phone: data.phone,
-          course_id: data.course_id,
-          status: "pending",
-        },
-      ]);
+      const { error } = await supabase.from("enrollments").insert({
+        student_name: data.student_name,
+        email: data.email,
+        phone: data.phone,
+        course_id: data.course_id,
+        status: "pending",
+      });
 
       if (error) throw error;
 

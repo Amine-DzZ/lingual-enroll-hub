@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,14 +23,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Course } from "@/integrations/supabase/client-types";
 
 // Define enrollment schema
 const enrollmentSchema = z.object({
-  name: z.string().min(2, { message: "Name is required" }),
+  student_name: z.string().min(2, { message: "Name is required" }),
   email: z.string().email({ message: "Invalid email address" }),
   phone: z.string().min(6, { message: "Phone number is required" }),
-  language: z.string().min(1, { message: "Please select a language" }),
-  level: z.string().min(1, { message: "Please select your current level" }),
+  course_id: z.string().min(1, { message: "Please select a course" }),
   message: z.string().optional(),
 });
 
@@ -42,26 +44,51 @@ const EnrollmentForm = () => {
   const [language, setLanguage] = useState<"en" | "ar">("en");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch available courses
+  const { data: courses } = useQuery({
+    queryKey: ["enrollment-courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id, name, level")
+        .order("name");
+
+      if (error) throw error;
+      return data as Course[];
+    },
+  });
+
   // Initialize useForm
   const form = useForm<EnrollmentFormValues>({
     resolver: zodResolver(enrollmentSchema),
     defaultValues: {
-      name: "",
+      student_name: "",
       email: "",
       phone: "",
-      language: "",
-      level: "",
+      course_id: "",
       message: "",
     },
   });
 
   // Handle form submission
-  const onSubmit = (data: EnrollmentFormValues) => {
+  const onSubmit = async (data: EnrollmentFormValues) => {
     setIsSubmitting(true);
     
-    // Simulate API submission with a delay
-    setTimeout(() => {
-      console.log("Form submitted:", data);
+    try {
+      // Submit to Supabase
+      const { error } = await supabase.from("enrollments").insert([
+        {
+          student_name: data.student_name,
+          email: data.email,
+          phone: data.phone,
+          course_id: data.course_id,
+          status: "pending",
+        },
+      ]);
+
+      if (error) throw error;
+
+      // Show success toast
       toast({
         title: language === "en" ? "Enrollment Submitted!" : "تم إرسال التسجيل!",
         description:
@@ -70,9 +97,19 @@ const EnrollmentForm = () => {
             : "سنتصل بك قريبًا لتأكيد تسجيلك.",
         variant: "default",
       });
+      
+      // Reset form
       form.reset();
+    } catch (error: any) {
+      // Show error toast
+      toast({
+        title: language === "en" ? "Submission Error" : "خطأ في الإرسال",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -99,7 +136,7 @@ const EnrollmentForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="student_name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
@@ -173,90 +210,35 @@ const EnrollmentForm = () => {
 
                   <FormField
                     control={form.control}
-                    name="language"
+                    name="course_id"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
                           {language === "en"
-                            ? "Preferred Language"
-                            : "اللغة المفضلة"}
+                            ? "Preferred Course"
+                            : "الدورة المفضلة"}
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue
                                 placeholder={
                                   language === "en"
-                                    ? "Select a language"
-                                    : "اختر لغة"
+                                    ? "Select a course"
+                                    : "اختر دورة"
                                 }
                               />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="english">
-                              {language === "en" ? "English" : "الإنجليزية"}
-                            </SelectItem>
-                            <SelectItem value="french">
-                              {language === "en" ? "French" : "الفرنسية"}
-                            </SelectItem>
-                            <SelectItem value="spanish">
-                              {language === "en" ? "Spanish" : "الإسبانية"}
-                            </SelectItem>
-                            <SelectItem value="german">
-                              {language === "en" ? "German" : "الألمانية"}
-                            </SelectItem>
-                            <SelectItem value="arabic">
-                              {language === "en" ? "Arabic" : "العربية"}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="level"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>
-                          {language === "en"
-                            ? "Current Level"
-                            : "المستوى الحالي"}
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue
-                                placeholder={
-                                  language === "en"
-                                    ? "Select your current level"
-                                    : "اختر مستواك الحالي"
-                                }
-                              />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="beginner">
-                              {language === "en" ? "Beginner" : "مبتدئ"}
-                            </SelectItem>
-                            <SelectItem value="intermediate">
-                              {language === "en" ? "Intermediate" : "متوسط"}
-                            </SelectItem>
-                            <SelectItem value="advanced">
-                              {language === "en" ? "Advanced" : "متقدم"}
-                            </SelectItem>
-                            <SelectItem value="fluent">
-                              {language === "en" ? "Fluent" : "طليق"}
-                            </SelectItem>
+                            {courses?.map((course) => (
+                              <SelectItem key={course.id} value={course.id}>
+                                {course.name} ({course.level})
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />

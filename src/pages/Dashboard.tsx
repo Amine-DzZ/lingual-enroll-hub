@@ -5,6 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell
+} from '@/components/ui/table';
 import { Course, Enrollment } from '@/integrations/supabase/client-types';
 import { BookOpen, Users, TrendingUp } from 'lucide-react';
 
@@ -13,6 +21,7 @@ const Dashboard = () => {
   const [enrollmentCount, setEnrollmentCount] = useState<number>(0);
   const [courseCount, setCourseCount] = useState<number>(0);
   const [recentEnrollments, setRecentEnrollments] = useState<Enrollment[]>([]);
+  const [studentEnrollments, setStudentEnrollments] = useState<Enrollment[]>([]);
 
   // Fetch courses count
   const { data: coursesData } = useQuery({
@@ -58,8 +67,31 @@ const Dashboard = () => {
       };
       
       fetchEnrollmentData();
+    } else {
+      // For regular users, fetch their own enrollments
+      const fetchStudentEnrollments = async () => {
+        if (!user) return;
+        
+        try {
+          const { data, error } = await supabase
+            .from('enrollments')
+            .select(`
+              *,
+              courses:course_id(name, instructor, level)
+            `)
+            .eq('email', user.email)
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setStudentEnrollments(data as any[] || []);
+        } catch (error) {
+          console.error('Error fetching student enrollments:', error);
+        }
+      };
+      
+      fetchStudentEnrollments();
     }
-  }, [isAdmin]);
+  }, [isAdmin, user]);
 
   // Update course count when data changes
   useEffect(() => {
@@ -67,6 +99,18 @@ const Dashboard = () => {
       setCourseCount(coursesData);
     }
   }, [coursesData]);
+
+  // Get status badge color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -122,60 +166,82 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* For regular users, show their enrollments */}
+        {!isAdmin && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold mb-4">Your Enrollments</h2>
+            {studentEnrollments.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Instructor</TableHead>
+                      <TableHead>Level</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Enrollment Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studentEnrollments.map((enrollment: any) => (
+                      <TableRow key={enrollment.id}>
+                        <TableCell className="font-medium">{enrollment.courses?.name}</TableCell>
+                        <TableCell>{enrollment.courses?.instructor}</TableCell>
+                        <TableCell>{enrollment.courses?.level}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            getStatusColor(enrollment.status)
+                          }`}>
+                            {enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{new Date(enrollment.created_at).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded-md border border-dashed text-center">
+                <p className="text-gray-500">You haven't enrolled in any courses yet.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show recent enrollments for admin */}
         {isAdmin && recentEnrollments.length > 0 && (
           <div className="mt-8">
             <h2 className="text-xl font-bold mb-4">Recent Enrollments</h2>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Course
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Course</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {recentEnrollments.map((enrollment: any) => (
-                    <tr key={enrollment.id}>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {enrollment.student_name}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {enrollment.email}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {enrollment.courses?.name}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                    <TableRow key={enrollment.id}>
+                      <TableCell className="font-medium">{enrollment.student_name}</TableCell>
+                      <TableCell>{enrollment.email}</TableCell>
+                      <TableCell>{enrollment.courses?.name}</TableCell>
+                      <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          enrollment.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : enrollment.status === 'approved'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                          getStatusColor(enrollment.status)
                         }`}>
                           {enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {new Date(enrollment.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell>{new Date(enrollment.created_at).toLocaleDateString()}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         )}

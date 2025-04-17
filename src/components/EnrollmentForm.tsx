@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,9 +23,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { Course } from "@/integrations/supabase/client-types";
+
+// Sample courses data
+const sampleCourses = [
+  { id: '1', name: 'English Basics', level: 'Beginner' },
+  { id: '2', name: 'Spanish Intermediate', level: 'Intermediate' },
+  { id: '3', name: 'French Advanced', level: 'Advanced' },
+];
 
 // Define enrollment schema
 const enrollmentSchema = z.object({
@@ -35,7 +40,6 @@ const enrollmentSchema = z.object({
   message: z.string().optional(),
 });
 
-// Define enrollment form field values
 type EnrollmentFormValues = z.infer<typeof enrollmentSchema>;
 
 const EnrollmentForm = () => {
@@ -43,26 +47,6 @@ const EnrollmentForm = () => {
   const [language, setLanguage] = useState<"en" | "ar">("en");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch available courses
-  const { data: courses } = useQuery({
-    queryKey: ["enrollment-courses"],
-    queryFn: async () => {
-      console.log('Fetching available courses');
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, name, level")
-        .order("name");
-
-      if (error) {
-        console.error('Error fetching courses:', error);
-        throw error;
-      }
-      console.log('Courses fetched:', data);
-      return data as Course[];
-    },
-  });
-
-  // Initialize useForm
   const form = useForm<EnrollmentFormValues>({
     resolver: zodResolver(enrollmentSchema),
     defaultValues: {
@@ -74,30 +58,14 @@ const EnrollmentForm = () => {
     },
   });
 
-  // Handle form submission
   const onSubmit = async (data: EnrollmentFormValues) => {
     setIsSubmitting(true);
-    console.log('Submitting enrollment form:', data);
-    
     try {
-      // Submit to Supabase
-      const { error } = await supabase.from("enrollments").insert([
-        {
-          student_name: data.student_name,
-          email: data.email,
-          phone: data.phone,
-          course_id: data.course_id,
-          status: "pending",
-        },
-      ]);
-
-      if (error) {
-        console.error('Error inserting enrollment:', error);
-        throw error;
-      }
-
-      console.log('Enrollment submitted successfully');
-      // Show success toast
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Enrollment submitted:', data);
+      
       toast({
         title: language === "en" ? "Enrollment Submitted!" : "تم إرسال التسجيل!",
         description:
@@ -107,14 +75,12 @@ const EnrollmentForm = () => {
         variant: "default",
       });
       
-      // Reset form
       form.reset();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Enrollment submission error:', error);
-      // Show error toast
       toast({
         title: language === "en" ? "Submission Error" : "خطأ في الإرسال",
-        description: error.message,
+        description: "An error occurred while submitting your enrollment.",
         variant: "destructive",
       });
     } finally {
@@ -244,7 +210,7 @@ const EnrollmentForm = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {courses?.map((course) => (
+                            {sampleCourses.map((course) => (
                               <SelectItem key={course.id} value={course.id}>
                                 {course.name} ({course.level})
                               </SelectItem>

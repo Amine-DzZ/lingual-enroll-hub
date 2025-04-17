@@ -1,11 +1,10 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
   Form,
@@ -20,13 +19,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
-// Define user profile schema
 const profileSchema = z.object({
   first_name: z.string().min(1, { message: 'First name is required' }),
   last_name: z.string().min(1, { message: 'Last name is required' }),
 });
 
-// Define password schema
 const passwordSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   confirmPassword: z.string(),
@@ -39,22 +36,19 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const DashboardSettings = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  // Initialize profile form
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      first_name: profile?.first_name || '',
-      last_name: profile?.last_name || '',
+      first_name: '',
+      last_name: '',
     },
   });
 
-  // Initialize password form
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
@@ -63,75 +57,45 @@ const DashboardSettings = () => {
     },
   });
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (values: ProfileFormValues) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(values)
-        .eq('id', user?.id || '')
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+  const onProfileSubmit = async (data: ProfileFormValues) => {
+    setIsUpdatingProfile(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
         title: 'Profile updated',
         description: 'Your profile information has been updated successfully.',
       });
-      setIsUpdatingProfile(false);
-    },
-    onError: (error: any) => {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: `Failed to update profile: ${error.message}`,
+        description: 'Failed to update profile',
         variant: 'destructive',
       });
+    } finally {
       setIsUpdatingProfile(false);
-    },
-  });
+    }
+  };
 
-  // Update password mutation
-  const updatePasswordMutation = useMutation({
-    mutationFn: async ({ password }: { password: string }) => {
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
-      
-      if (error) throw error;
-      return { success: true };
-    },
-    onSuccess: () => {
+  const onPasswordSubmit = async (data: PasswordFormValues) => {
+    setIsUpdatingPassword(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
         title: 'Password updated',
         description: 'Your password has been updated successfully.',
       });
       passwordForm.reset();
-      setIsUpdatingPassword(false);
-    },
-    onError: (error: any) => {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: `Failed to update password: ${error.message}`,
+        description: 'Failed to update password',
         variant: 'destructive',
       });
+    } finally {
       setIsUpdatingPassword(false);
-    },
-  });
-
-  // Handle profile form submission
-  const onProfileSubmit = (data: ProfileFormValues) => {
-    setIsUpdatingProfile(true);
-    updateProfileMutation.mutate(data);
-  };
-
-  // Handle password form submission
-  const onPasswordSubmit = (data: PasswordFormValues) => {
-    setIsUpdatingPassword(true);
-    updatePasswordMutation.mutate({ password: data.password });
+    }
   };
 
   return (
@@ -250,7 +214,7 @@ const DashboardSettings = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 mb-4">
-                  Email address: <strong>{user?.email || 'Not available'}</strong>
+                  Username: <strong>{user?.username || 'Not available'}</strong>
                 </p>
               </div>
               

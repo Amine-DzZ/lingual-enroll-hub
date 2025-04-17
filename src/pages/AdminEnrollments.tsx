@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { CheckCircle, XCircle, Eye, ArrowUpDown } from 'lucide-react';
 
 type Enrollment = {
@@ -48,9 +58,10 @@ const AdminEnrollments = () => {
   }>({ key: 'created_at', direction: 'desc' });
 
   // Fetch enrollments
-  const { data: enrollments, isLoading } = useQuery({
+  const { data: enrollments, isLoading, error: fetchError } = useQuery({
     queryKey: ['admin-enrollments'],
     queryFn: async () => {
+      console.log('Fetching enrollments for admin');
       const { data, error } = await supabase
         .from('enrollments')
         .select(`
@@ -61,7 +72,12 @@ const AdminEnrollments = () => {
           )
         `);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching enrollments:', error);
+        throw error;
+      }
+      
+      console.log('Enrollments fetched:', data);
       return data as Enrollment[];
     },
     enabled: isAdmin,
@@ -70,15 +86,20 @@ const AdminEnrollments = () => {
   // Update enrollment status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      console.log(`Updating enrollment ${id} to status ${status}`);
       const { data, error } = await supabase
         .from('enrollments')
         .update({ status })
         .eq('id', id)
-        .select()
-        .single();
+        .select();
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error updating enrollment status:', error);
+        throw error;
+      }
+      
+      console.log('Enrollment updated:', data);
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-enrollments'] });
@@ -155,6 +176,18 @@ const AdminEnrollments = () => {
     }
   };
 
+  // Show error if any
+  if (fetchError) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h2 className="text-lg font-medium text-red-800">Error loading enrollments</h2>
+          <p className="text-red-600">{(fetchError as Error).message}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -172,10 +205,10 @@ const AdminEnrollments = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
                     <button
                       className="flex items-center space-x-1"
                       onClick={() => handleSort('student_name')}
@@ -183,8 +216,8 @@ const AdminEnrollments = () => {
                       <span>Student Name</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </button>
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead>
                     <button
                       className="flex items-center space-x-1"
                       onClick={() => handleSort('email')}
@@ -192,8 +225,8 @@ const AdminEnrollments = () => {
                       <span>Email</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </button>
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead>
                     <button
                       className="flex items-center space-x-1"
                       onClick={() => handleSort('courses.name')}
@@ -201,8 +234,8 @@ const AdminEnrollments = () => {
                       <span>Course</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </button>
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead>
                     <button
                       className="flex items-center space-x-1"
                       onClick={() => handleSort('status')}
@@ -210,8 +243,8 @@ const AdminEnrollments = () => {
                       <span>Status</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </button>
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead>
                     <button
                       className="flex items-center space-x-1"
                       onClick={() => handleSort('created_at')}
@@ -219,35 +252,25 @@ const AdminEnrollments = () => {
                       <span>Date</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </button>
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+                  </TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {sortedEnrollments.map((enrollment) => (
-                  <tr key={enrollment.id}>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {enrollment.student_name}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {enrollment.email}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {enrollment.courses.name}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                  <TableRow key={enrollment.id}>
+                    <TableCell>{enrollment.student_name}</TableCell>
+                    <TableCell>{enrollment.email}</TableCell>
+                    <TableCell>{enrollment.courses.name}</TableCell>
+                    <TableCell>
                       <span 
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(enrollment.status)}`}
                       >
                         {enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {new Date(enrollment.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell>{new Date(enrollment.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
                       <div className="flex space-x-2">
                         <Button
                           variant="outline"
@@ -281,11 +304,11 @@ const AdminEnrollments = () => {
                           </>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -295,6 +318,7 @@ const AdminEnrollments = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enrollment Details</DialogTitle>
+            <DialogDescription>Review enrollment information</DialogDescription>
           </DialogHeader>
           
           {selectedEnrollment && (

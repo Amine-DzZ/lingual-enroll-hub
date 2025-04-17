@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -48,12 +47,17 @@ const EnrollmentForm = () => {
   const { data: courses } = useQuery({
     queryKey: ["enrollment-courses"],
     queryFn: async () => {
+      console.log('Fetching available courses');
       const { data, error } = await supabase
         .from("courses")
         .select("id, name, level")
         .order("name");
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching courses:', error);
+        throw error;
+      }
+      console.log('Courses fetched:', data);
       return data as Course[];
     },
   });
@@ -73,6 +77,7 @@ const EnrollmentForm = () => {
   // Handle form submission
   const onSubmit = async (data: EnrollmentFormValues) => {
     setIsSubmitting(true);
+    console.log('Submitting enrollment form:', data);
     
     try {
       // Submit to Supabase
@@ -86,8 +91,12 @@ const EnrollmentForm = () => {
         },
       ]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting enrollment:', error);
+        throw error;
+      }
 
+      console.log('Enrollment submitted successfully');
       // Show success toast
       toast({
         title: language === "en" ? "Enrollment Submitted!" : "تم إرسال التسجيل!",
@@ -101,6 +110,7 @@ const EnrollmentForm = () => {
       // Reset form
       form.reset();
     } catch (error: any) {
+      console.error('Enrollment submission error:', error);
       // Show error toast
       toast({
         title: language === "en" ? "Submission Error" : "خطأ في الإرسال",

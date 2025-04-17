@@ -23,28 +23,24 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Define the schema for login/signup
+// Define the schema for login
 const authSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z
-    .string()
-    .min(6, { message: 'Password must be at least 6 characters long' }),
+  username: z.string().min(1, { message: 'Username is required' }),
+  password: z.string().min(1, { message: 'Password is required' }),
 });
 
 type AuthFormValues = z.infer<typeof authSchema>;
 
 const Auth = () => {
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
     defaultValues: {
-      email: '',
+      username: '',
       password: '',
     },
   });
@@ -57,13 +53,8 @@ const Auth = () => {
   const onSubmit = async (values: AuthFormValues) => {
     setIsLoading(true);
     try {
-      if (activeTab === 'login') {
-        await signIn(values.email, values.password);
-        navigate('/dashboard');
-      } else {
-        await signUp(values.email, values.password);
-        // Don't navigate away after signup as they need to verify email
-      }
+      await signIn(values.username, values.password);
+      navigate('/dashboard');
     } catch (error) {
       console.error('Authentication error:', error);
     } finally {
@@ -80,126 +71,61 @@ const Auth = () => {
               Elite Minds Academia
             </CardTitle>
             <CardDescription className="text-center">
-              {activeTab === 'login'
-                ? 'Sign in to your account'
-                : 'Create a new account'}
+              Sign in to your account
             </CardDescription>
           </CardHeader>
           
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'signup')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your email" 
-                              {...field} 
-                              type="email"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your password" 
-                              type="password" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-academy-teal hover:bg-academy-teal/90"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Signing In...' : 'Sign In'}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your email" 
-                              {...field} 
-                              type="email"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Create a password" 
-                              type="password" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-academy-teal hover:bg-academy-teal/90"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Signing Up...' : 'Sign Up'}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your username" 
+                          {...field} 
+                          type="text"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your password" 
+                          type="password" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              
+              <CardFooter>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-academy-teal hover:bg-academy-teal/90"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Signing In...' : 'Sign In'}
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
       </div>
     </div>

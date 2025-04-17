@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,7 +69,7 @@ const DashboardSettings = () => {
       const { data, error } = await supabase
         .from('profiles')
         .update(values)
-        .eq('id', user?.id)
+        .eq('id', user?.id || '')
         .select()
         .single();
       
@@ -251,7 +250,7 @@ const DashboardSettings = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 mb-4">
-                  Email address: <strong>{user?.email}</strong>
+                  Email address: <strong>{user?.email || 'Not available'}</strong>
                 </p>
               </div>
               

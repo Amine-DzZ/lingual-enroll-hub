@@ -79,7 +79,7 @@ const Dashboard = () => {
               *,
               courses:course_id(name, instructor, level)
             `)
-            .eq('email', user.email)
+            .eq('email', user.email || '') // Add a default empty string
             .order('created_at', { ascending: false });
           
           if (error) throw error;

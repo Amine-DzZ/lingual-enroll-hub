@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 // Define our simplified user and profile types
 type User = {
   username: string;
+  email?: string;
+  id?: string;
 };
 
 type Profile = {
@@ -61,7 +63,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Hardcoded admin credentials
       if (username === 'omran2025' && password === 'PASSWORD123') {
-        const user = { username: 'omran2025' };
+        const user = { 
+          username: 'omran2025',
+          email: 'admin@eliteminds.com',
+          id: '1'
+        };
         setUser(user);
         
         // Set admin profile

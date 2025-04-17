@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 // Define the schema for login
 const authSchema = z.object({
@@ -36,6 +37,7 @@ const Auth = () => {
   const { user, signIn } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
@@ -54,9 +56,18 @@ const Auth = () => {
     setIsLoading(true);
     try {
       await signIn(values.username, values.password);
+      toast({
+        title: "Success",
+        description: "Successfully logged in!",
+      });
       navigate('/dashboard');
     } catch (error) {
       console.error('Authentication error:', error);
+      toast({
+        title: "Error",
+        description: "Invalid credentials. Try username: omran2025, password: PASSWORD123",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
